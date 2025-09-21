@@ -1,0 +1,357 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a REST API server for tracking NFT ownership data from the Ethereum blockchain and storing it in a PostgreSQL database.",
+        "title": "Go Ethereum NFT Tracker API",
+        "contact": {
+            "name": "API Support",
+            "url": "http://github.com/Jadedvi104/go-cli-eth",
+            "email": "support@example.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/api/nft": {
+            "get": {
+                "description": "Retrieves all NFT records from the database",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFT"
+                ],
+                "summary": "Get all NFTs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.NFTListResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/nft/owner": {
+            "put": {
+                "description": "Updates an existing NFT record with current blockchain data",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFT"
+                ],
+                "summary": "Update NFT owner data",
+                "parameters": [
+                    {
+                        "description": "Update owner request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateOwnerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.NFTResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Fetches the owner of an NFT from the blockchain and stores it in the database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFT"
+                ],
+                "summary": "Get and store NFT owner from blockchain",
+                "parameters": [
+                    {
+                        "description": "Get owner request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.GetOwnerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.NFTResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/nft/{token_id}": {
+            "get": {
+                "description": "Retrieves an NFT record from the database by token ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "NFT"
+                ],
+                "summary": "Get NFT by token ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Token ID",
+                        "name": "token_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.NFTResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Returns the health status of the API",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Health check endpoint",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SuccessResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "dto.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Detailed error message"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "An error occurred"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": false
+                }
+            }
+        },
+        "dto.GetOwnerRequest": {
+            "type": "object",
+            "required": [
+                "contract_address",
+                "token_id"
+            ],
+            "properties": {
+                "contract_address": {
+                    "type": "string",
+                    "example": "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D"
+                },
+                "token_id": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "dto.NFTListResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.NFTResponse"
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "NFTs retrieved successfully"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.NFTResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2023-01-01T12:00:00Z"
+                },
+                "owner": {
+                    "type": "string",
+                    "example": "0x1234567890123456789012345678901234567890"
+                },
+                "token_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2023-01-01T12:00:00Z"
+                }
+            }
+        },
+        "dto.SuccessResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "message": {
+                    "type": "string",
+                    "example": "Operation completed successfully"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.UpdateOwnerRequest": {
+            "type": "object",
+            "required": [
+                "contract_address",
+                "token_id"
+            ],
+            "properties": {
+                "contract_address": {
+                    "type": "string",
+                    "example": "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D"
+                },
+                "token_id": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        }
+    }
+}

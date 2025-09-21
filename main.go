@@ -1,7 +1,22 @@
+// Package main provides a REST API server for the Go Ethereum NFT Tracker
+// @title Go Ethereum NFT Tracker API
+// @version 1.0
+// @description This is a REST API server for tracking NFT ownership data from the Ethereum blockchain and storing it in a PostgreSQL database.
+//
+// @contact.name API Support
+// @contact.url http://github.com/Jadedvi104/go-cli-eth
+// @contact.email support@example.com
+//
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+//
+// @host localhost:8080
+// @BasePath /
 package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -9,8 +24,14 @@ import (
 	"strings"
 
 	"go-cli-eth/database"
+	_ "go-cli-eth/docs" // Import for swagger docs
 	"go-cli-eth/ethereum"
+	"go-cli-eth/handlers"
 	"go-cli-eth/services"
+
+	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 var (
@@ -63,16 +84,31 @@ func init() {
 }
 
 func main() {
+	// Parse command line flags
+	var (
+		mode = flag.String("mode", "api", "Run mode: 'api' for command line interface, 'api' for HTTP API server")
+		port = flag.String("port", "8080", "Port for API server (only used in api mode)")
+	)
+	flag.Parse()
+
 	fmt.Println("🚀 Go CLI Ethereum NFT Tracker")
 	fmt.Println("===============================")
 
 	// Initialize database connection
 	var dbConnectionString string
-	fmt.Print("Enter PostgreSQL connection string (or press Enter to use DATABASE_URL env var): ")
-
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	dbConnectionString = strings.TrimSpace(input)
+	if *mode == "cli" {
+		fmt.Print("Enter PostgreSQL connection string (or press Enter to use DATABASE_URL env var): ")
+		reader := bufio.NewReader(os.Stdin)
+		input, _ := reader.ReadString('\n')
+		dbConnectionString = strings.TrimSpace(input)
+	} else {
+		// In API mode, try to get from environment
+		dbConnectionString = os.Getenv("DATABASE_URL")
+		if dbConnectionString == "" {
+			log.Fatal("DATABASE_URL environment variable is required in API mode")
+		}
+		fmt.Printf("Using database from environment: %s\n", maskConnectionString(dbConnectionString))
+	}
 
 	err := database.InitDB(dbConnectionString)
 	if err != nil {
@@ -81,13 +117,16 @@ func main() {
 
 	// Initialize Ethereum client
 	var rpcURL string
-	fmt.Print("Enter Ethereum RPC URL (or press Enter for default): ")
-	input, _ = reader.ReadString('\n')
-	rpcURL = strings.TrimSpace(input)
+	if *mode == "cli" {
+		fmt.Print("Enter Ethereum RPC URL (or press Enter for default): ")
+		reader := bufio.NewReader(os.Stdin)
+		input, _ := reader.ReadString('\n')
+		rpcURL = strings.TrimSpace(input)
+	}
 
 	if rpcURL == "" {
 		rpcURL = defaultRPCURL
-		fmt.Printf("Using default RPC URL: %s\n", rpcURL)
+		fmt.Printf("Using RPC URL: %s\n", maskRPCURL(rpcURL))
 	}
 
 	ethClient, err := ethereum.NewEthereumClient(rpcURL)
@@ -98,6 +137,21 @@ func main() {
 
 	// Initialize NFT service
 	nftService := services.NewNFTService(ethClient)
+
+	// Run in the specified mode
+	switch *mode {
+	case "cli":
+		runCLI(nftService)
+	case "api":
+		runAPIServer(nftService, *port)
+	default:
+		log.Fatalf("Invalid mode: %s. Use 'cli' or 'api'", *mode)
+	}
+}
+
+// runCLI runs the application in command line interface mode
+func runCLI(nftService *services.NFTService) {
+	reader := bufio.NewReader(os.Stdin)
 
 	// Main application loop
 	for {
@@ -130,6 +184,92 @@ func main() {
 	}
 }
 
+// runAPIServer runs the application in HTTP API server mode
+func runAPIServer(nftService *services.NFTService, port string) {
+	// Set Gin mode
+	gin.SetMode(gin.ReleaseMode)
+
+	// Create Gin router
+	r := gin.Default()
+
+	// Add CORS middleware
+	r.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	})
+
+	// Initialize handlers
+	nftHandler := handlers.NewNFTHandler(nftService)
+
+	// Health check endpoint
+	r.GET("/health", nftHandler.HealthCheck)
+
+	// API routes
+	api := r.Group("/api")
+	{
+		nft := api.Group("/nft")
+		{
+			nft.POST("/owner", nftHandler.GetAndStoreOwner)
+			nft.PUT("/owner", nftHandler.UpdateOwner)
+			nft.GET("/:token_id", nftHandler.GetNFTByTokenID)
+			nft.GET("", nftHandler.GetAllNFTs)
+		}
+	}
+
+	// Swagger documentation
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	fmt.Printf("🌐 API server starting on port %s\n", port)
+	fmt.Printf("📖 Swagger documentation available at: http://localhost:%s/swagger/index.html\n", port)
+	fmt.Printf("🏥 Health check available at: http://localhost:%s/health\n", port)
+
+	// Start server
+	log.Fatal(r.Run(":" + port))
+}
+
+// maskConnectionString masks sensitive parts of the database connection string
+func maskConnectionString(connStr string) string {
+	// Simple masking - replace password with ***
+	parts := strings.Split(connStr, ":")
+	if len(parts) >= 3 {
+		// Find password part (after second colon, before @)
+		for i, part := range parts {
+			if i >= 2 && strings.Contains(part, "@") {
+				atIndex := strings.Index(part, "@")
+				parts[i] = "***" + part[atIndex:]
+				break
+			}
+		}
+		return strings.Join(parts, ":")
+	}
+	return connStr
+}
+
+// maskRPCURL masks sensitive parts of the RPC URL
+func maskRPCURL(rpcURL string) string {
+	// Simple masking for API keys in URLs
+	if strings.Contains(rpcURL, "/") {
+		parts := strings.Split(rpcURL, "/")
+		if len(parts) > 0 {
+			lastPart := parts[len(parts)-1]
+			if len(lastPart) > 8 {
+				parts[len(parts)-1] = lastPart[:4] + "***" + lastPart[len(lastPart)-4:]
+			}
+		}
+		return strings.Join(parts, "/")
+	}
+	return rpcURL
+}
+
+// CLI Handler Functions
 func handleGetAndStoreOwner(nftService *services.NFTService, reader *bufio.Reader) {
 	fmt.Print("Enter contract address: ")
 	contractAddress, _ := reader.ReadString('\n')

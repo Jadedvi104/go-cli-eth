@@ -1,0 +1,234 @@
+basePath: /
+definitions:
+  dto.ErrorResponse:
+    properties:
+      error:
+        example: Detailed error message
+        type: string
+      message:
+        example: An error occurred
+        type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  dto.GetOwnerRequest:
+    properties:
+      contract_address:
+        example: 0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D
+        type: string
+      token_id:
+        example: 1
+        type: integer
+    required:
+    - contract_address
+    - token_id
+    type: object
+  dto.NFTListResponse:
+    properties:
+      count:
+        example: 10
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/dto.NFTResponse'
+        type: array
+      message:
+        example: NFTs retrieved successfully
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.NFTResponse:
+    properties:
+      created_at:
+        example: "2023-01-01T12:00:00Z"
+        type: string
+      owner:
+        example: 0x1234567890123456789012345678901234567890
+        type: string
+      token_id:
+        example: 1
+        type: integer
+      updated_at:
+        example: "2023-01-01T12:00:00Z"
+        type: string
+    type: object
+  dto.SuccessResponse:
+    properties:
+      data: {}
+      message:
+        example: Operation completed successfully
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.UpdateOwnerRequest:
+    properties:
+      contract_address:
+        example: 0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D
+        type: string
+      token_id:
+        example: 1
+        type: integer
+    required:
+    - contract_address
+    - token_id
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://github.com/Jadedvi104/go-cli-eth
+  description: This is a REST API server for tracking NFT ownership data from the
+    Ethereum blockchain and storing it in a PostgreSQL database.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: Go Ethereum NFT Tracker API
+  version: "1.0"
+paths:
+  /api/nft:
+    get:
+      description: Retrieves all NFT records from the database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.NFTListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get all NFTs
+      tags:
+      - NFT
+  /api/nft/{token_id}:
+    get:
+      description: Retrieves an NFT record from the database by token ID
+      parameters:
+      - description: Token ID
+        in: path
+        name: token_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.NFTResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get NFT by token ID
+      tags:
+      - NFT
+  /api/nft/owner:
+    post:
+      consumes:
+      - application/json
+      description: Fetches the owner of an NFT from the blockchain and stores it in
+        the database
+      parameters:
+      - description: Get owner request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.GetOwnerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.NFTResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get and store NFT owner from blockchain
+      tags:
+      - NFT
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing NFT record with current blockchain data
+      parameters:
+      - description: Update owner request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateOwnerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.NFTResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Update NFT owner data
+      tags:
+      - NFT
+  /health:
+    get:
+      description: Returns the health status of the API
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SuccessResponse'
+      summary: Health check endpoint
+      tags:
+      - Health
+swagger: "2.0"

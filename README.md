@@ -1,13 +1,26 @@
-# Go CLI Ethereum NFT Tracker
+# Go Ethereum NFT Tracker API
 
-A Go CLI application that interacts with Ethereum blockchain to fetch NFT ownership data and store it in a PostgreSQL database.
+A Go REST API server that interacts with Ethereum blockchain to fetch NFT ownership data and store it in a PostgreSQL database. **Features comprehensive Swagger documentation for easy integration!**
 
-## Features
+## ✨ Features
 
 1. **Get NFT Owner**: Fetch the owner of an NFT token from the blockchain using the `ownerOf` function
 2. **Store Data**: Store retrieved NFT data in PostgreSQL database with tokenId as primary key
 3. **Update Function**: Update existing NFT records with current blockchain data
 4. **Database Management**: Automatic table creation and data persistence
+5. **🚀 REST API**: Full REST API with comprehensive endpoints
+6. **📖 Swagger Documentation**: Interactive API documentation and testing
+7. **� CORS Support**: Cross-origin resource sharing enabled
+
+## 🚀 Quick Start
+
+### Start API Server
+```bash
+./build/nft-tracker.exe
+```
+
+### Swagger Documentation
+Visit: http://localhost:8080/swagger/index.html
 
 ## Prerequisites
 
@@ -60,27 +73,49 @@ You can use:
 
 ## Usage
 
-1. Build and run the application:
+### Build and Run
+1. Build the application:
    ```bash
-   go run main.go
+   go build -o ./build/nft-tracker.exe .
    ```
 
-2. The application will prompt you to enter:
-   - PostgreSQL connection string (or use environment variable)
-   - Ethereum RPC URL (or use default from environment)
+2. Run the API server:
+   ```bash
+   ./build/nft-tracker.exe
+   ```
 
-3. Use the interactive menu to:
-   - **Option 1**: Get and store NFT owner data from blockchain
-   - **Option 2**: Update existing NFT record with current blockchain data
-   - **Option 3**: Retrieve NFT data from database by token ID
-   - **Option 4**: List all stored NFTs
-   - **Option 5**: Exit
+   The server will start on port 8080 (or the port specified in `PORT` environment variable).
+
+### API Endpoints
+- `POST /api/nft/owner` - Get and store NFT owner
+- `PUT /api/nft/owner` - Update NFT owner  
+- `GET /api/nft/{token_id}` - Get NFT by token ID
+- `GET /api/nft` - List all NFTs
+- `GET /health` - Health check
+- `GET /swagger/*` - Swagger documentation
+
+### Interactive Documentation
+Access the Swagger UI at: http://localhost:8080/swagger/index.html
+
+### API Examples
+```bash
+# Get and store NFT owner
+curl -X POST http://localhost:8080/api/nft/owner \
+  -H "Content-Type: application/json" \
+  -d '{"contract_address": "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D", "token_id": 1}'
+
+# Get NFT by token ID  
+curl http://localhost:8080/api/nft/1
+
+# List all NFTs
+curl http://localhost:8080/api/nft
+```
 
 ## Project Structure
 
 ```
 go-cli-eth/
-├── main.go                 # Main application entry point
+├── main.go                 # Main application entry point (CLI + API modes)
 ├── models/
 │   └── nft.go             # NFT data model
 ├── database/
@@ -89,9 +124,19 @@ go-cli-eth/
 │   └── client.go          # Ethereum client and contract interaction
 ├── services/
 │   └── nft_service.go     # Business logic layer
+├── handlers/
+│   └── api.go             # REST API handlers with Swagger annotations
+├── dto/
+│   ├── requests.go        # API request structures
+│   └── responses.go       # API response structures
+├── docs/
+│   ├── docs.go            # Auto-generated Swagger documentation
+│   ├── swagger.json       # Swagger spec (JSON)
+│   └── swagger.yaml       # Swagger spec (YAML)
 ├── .env.example           # Environment configuration example
 ├── go.mod                 # Go module file
-└── README.md              # This file
+├── README.md              # This file
+└── API_USAGE.md           # Detailed API usage guide
 ```
 
 ## Database Schema
